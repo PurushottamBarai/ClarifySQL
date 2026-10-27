@@ -1,8 +1,67 @@
 # ClarifySQL
 
+### Natural Language MySQL Clarification and Guarded Query Engine
+
+[![Production Live](https://img.shields.io/badge/Production-Live-success)](https://clarify-sql-xi.vercel.app/)
+[![React](https://img.shields.io/badge/Frontend-React%2019%20+%20Vite-blue)](https://react.dev)
+[![Node.js](https://img.shields.io/badge/Backend-Node.js%20ESM-green)](https://nodejs.org)
+[![Groq AI](https://img.shields.io/badge/AI-Groq%20Inference-orange)](https://groq.com)
+[![Database](https://img.shields.io/badge/Database-MySQL%20+%20MongoDB-blueviolet)](https://www.mysql.com)
+[![License](https://img.shields.io/badge/License-ISC-lightgrey)](LICENSE)
+
+**[Experience Live on clarify-sql-xi.vercel.app](https://clarify-sql-xi.vercel.app/)**
+
+---
+
+## Overview
+
 ClarifySQL is an intelligent Natural Language to MySQL query assistant and clarification engine. It bridges the gap between non-technical questions and production database queries by eliminating hallucinations, interactively resolving business ambiguity, and enforcing strict read-only query execution guards.
 
 Unlike traditional text-to-SQL tools that guess user intent or generate dangerous operations directly against live tables, ClarifySQL parses uploaded SQL DDL definitions, validates live MySQL compatibility, asks targeted multiple-choice clarification questions when terms are vague, and safely executes approved read-only queries with strict timeouts and row bounds.
+
+---
+
+## System Architecture
+
+```mermaid
+flowchart LR
+    subgraph CLIENT["Client Browser (React 19 + Vite)"]
+        UI_SCHEMA["Schema Explorer & DDL Uploader"]
+        UI_CONSOLE["Query Console & Clarification Dialog"]
+        UI_EDITOR["SQL Code Editor & Formatter"]
+        UI_RESULTS["Results Grid & Visualizer"]
+    end
+
+    subgraph BACKEND["Express API Gateway (Node.js ESM)"]
+        API_ROUTER["Express Router & Session Middleware"]
+        AUTH_SRV["OAuth Controller (Google & GitHub)"]
+        DDL_ENGINE["DDL Parser & Schema Comparator"]
+        SAFETY_GUARD["SQL Safety Validator & AST Rules"]
+        CONN_MGR["MySQL Connection Pool Manager"]
+    end
+
+    subgraph SERVICES["External AI & Database Services"]
+        GROQ_AI["Groq Cloud AI (Structured JSON Engine)"]
+        MONGO_DB["MongoDB Atlas (User Creds & Profiles)"]
+        MYSQL_DB["Target MySQL Database (Live Instance)"]
+    end
+
+    UI_SCHEMA <-->|"DDL Upload / Schema Sync"| API_ROUTER
+    UI_CONSOLE <-->|"Natural Language Prompt"| API_ROUTER
+    UI_EDITOR <-->|"SQL Draft & Custom Edits"| API_ROUTER
+
+    API_ROUTER <--> DDL_ENGINE
+    API_ROUTER <--> SAFETY_GUARD
+    API_ROUTER <--> AUTH_SRV
+
+    AUTH_SRV <-->|"Persist Sessions & JWT"| MONGO_DB
+    API_ROUTER <-->|"Multi-turn Clarification & Prompting"| GROQ_AI
+
+    SAFETY_GUARD ==>|"Validated Read-Only SELECT"| CONN_MGR
+    CONN_MGR ==>|"TCP / TLS Connection"| MYSQL_DB
+    MYSQL_DB -.->|"Streamed Tabular Result Set"| CONN_MGR
+    CONN_MGR -.->|"JSON Data Matrix"| UI_RESULTS
+```
 
 ---
 
