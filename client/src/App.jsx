@@ -1,122 +1,294 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState, useEffect } from "react";
+import Header from "./components/Header";
+import SchemaPanel from "./components/SchemaPanel";
+import DatabaseModal from "./components/DatabaseModal";
+import AuthModal from "./components/AuthModal";
+import QueryConsole from "./components/QueryConsole";
+import SQLPreviewCard from "./components/SQLPreviewCard";
+import ResultsGrid from "./components/ResultsGrid";
+import { api } from "./api/client";
+import { useAuth } from "./context/AuthContext";
+import "./App.css";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const { user, logout } = useAuth();
+  const [schema, setSchema] = useState(null);
+  const [dbStatus, setDbStatus] = useState(null);
+  const [isDbModalOpen, setIsDbModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [queryResult, setQueryResult] = useState(null);
+  const [clarification, setClarification] = useState(null);
+  const [lastQuestion, setLastQuestion] = useState("");
+  const [executionResults, setExecutionResults] = useState(null);
+  const [executionError, setExecutionError] = useState(null);
+
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem("clarify_sidebar_width");
+    return saved ? Math.min(Math.max(parseInt(saved, 10), 200), 650) : 280;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handlePointerMove = (e) => {
+      const maxWidth = Math.min(650, window.innerWidth * 0.55);
+      const newWidth = Math.min(Math.max(e.clientX, 210), maxWidth);
+      setSidebarWidth(newWidth);
+    };
+
+    const handlePointerUp = () => {
+      setIsResizing(false);
+      localStorage.setItem("clarify_sidebar_width", sidebarWidth.toString());
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [isResizing, sidebarWidth]);
+
+  const [loadingSchema, setLoadingSchema] = useState(false);
+  const [loadingQuery, setLoadingQuery] = useState(false);
+  const [loadingExecute, setLoadingExecute] = useState(false);
+  const [loadingDb, setLoadingDb] = useState(false);
+
+  useEffect(() => {
+    async function init() {
+      try {
+        const schemaRes = await api.getSchema();
+        if (schemaRes?.schema) setSchema(schemaRes.schema);
+      } catch (err) {
+        console.debug("No active schema:", err.message);
+      }
+
+      try {
+        const dbRes = await api.getDbStatus();
+        setDbStatus(dbRes);
+        if (dbRes?.schema) {
+          setSchema(dbRes.schema);
+        }
+      } catch (err) {
+        console.debug("Database not yet connected:", err.message);
+      }
+    }
+    init();
+  }, []);
+
+  const handleUploadSchema = async (sqlContent) => {
+    try {
+      setLoadingSchema(true);
+      const res = await api.importSchema(sqlContent);
+      setSchema(res.schema);
+      setQueryResult(null);
+      setClarification(null);
+      setExecutionResults(null);
+      setExecutionError(null);
+    } catch (err) {
+      alert(`Schema upload error: ${err.message}`);
+    } finally {
+      setLoadingSchema(false);
+    }
+  };
+
+  const handleConnectDb = async (config) => {
+    try {
+      setLoadingDb(true);
+      const res = await api.connectDb(config);
+      setDbStatus({ connected: true, database: res.database });
+      if (res.schema) {
+        setSchema(res.schema);
+      }
+      if (res.compatibility && !res.compatibility.compatible) {
+        alert(
+          `Warning: Live schema differences detected:\n${res.compatibility.errors.join("\n")}`,
+        );
+      }
+    } finally {
+      setLoadingDb(false);
+    }
+  };
+
+  const handleDisconnectDb = async () => {
+    try {
+      await api.disconnectDb();
+      setDbStatus({ connected: false });
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleAskQuestion = async (question) => {
+    try {
+      setLoadingQuery(true);
+      setLastQuestion(question);
+      setExecutionResults(null);
+      setExecutionError(null);
+      const res = await api.askQuery(question);
+
+      if (res.status === "needs_clarification") {
+        setClarification(res);
+        setQueryResult(null);
+      } else if (res.status === "clear") {
+        setQueryResult(res);
+        setClarification(null);
+      } else if (res.status === "unsupported") {
+        alert(`Unsupported Request: ${res.reason}`);
+        setQueryResult(null);
+        setClarification(null);
+      }
+    } catch (err) {
+      alert(`Query error: ${err.message}`);
+    } finally {
+      setLoadingQuery(false);
+    }
+  };
+
+  const handleAnswerClarification = async (answer) => {
+    try {
+      setLoadingQuery(true);
+      const res = await api.askQuery(lastQuestion, answer);
+
+      if (res.status === "needs_clarification") {
+        setClarification(res);
+        setQueryResult(null);
+      } else if (res.status === "clear") {
+        setQueryResult(res);
+        setClarification(null);
+      } else if (res.status === "unsupported") {
+        alert(`Request unsupported: ${res.reason}`);
+        setQueryResult(null);
+        setClarification(null);
+      }
+    } catch (err) {
+      alert(`Clarification error: ${err.message}`);
+    } finally {
+      setLoadingQuery(false);
+    }
+  };
+
+  const handleExecuteQuery = async (sql) => {
+    try {
+      setLoadingExecute(true);
+      setExecutionError(null);
+      const res = await api.executeQuery(sql);
+      setExecutionResults(res);
+    } catch (err) {
+      setExecutionError(err.message);
+    } finally {
+      setLoadingExecute(false);
+    }
+  };
+
+  const handleRefreshSchema = async () => {
+    try {
+      setLoadingSchema(true);
+      const dbRes = await api.getDbStatus();
+      setDbStatus(dbRes);
+      if (dbRes?.schema) {
+        setSchema(dbRes.schema);
+      } else {
+        const schemaRes = await api.getSchema();
+        if (schemaRes?.schema) setSchema(schemaRes.schema);
+      }
+    } catch (err) {
+      console.warn("Failed to refresh schema:", err);
+    } finally {
+      setLoadingSchema(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (
+      confirm(
+        "Reset session? This clears your clarification history and imported state.",
+      )
+    ) {
+      await api.resetQuery();
+      setQueryResult(null);
+      setClarification(null);
+      setExecutionResults(null);
+      setExecutionError(null);
+    }
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="app-layout">
+      <Header
+        dbStatus={dbStatus}
+        onOpenDbModal={() => setIsDbModalOpen(true)}
+        onReset={handleReset}
+      />
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      <div
+        className="main-content"
+        style={{ gridTemplateColumns: `${sidebarWidth}px 1fr` }}
+      >
+        <div style={{ position: "relative", height: "100%", overflow: "visible" }}>
+          <SchemaPanel
+            schema={schema}
+            onUpload={handleUploadSchema}
+            loading={loadingSchema}
+            dbStatus={dbStatus}
+            onRefresh={handleRefreshSchema}
+            user={user}
+            onOpenAuthModal={() => setIsAuthModalOpen(true)}
+            onLogout={logout}
+          />
+          {/* Draggable Resizer Handle */}
+          <div
+            className={`sidebar-resizer ${isResizing ? "resizing" : ""}`}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              setIsResizing(true);
+            }}
+            onDoubleClick={() => setSidebarWidth(280)}
+            title="Drag to resize sidebar width (Double click to reset)"
+          />
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        <main className="console-area">
+          <QueryConsole
+            onAsk={handleAskQuestion}
+            clarification={clarification}
+            onAnswerClarification={handleAnswerClarification}
+            loading={loadingQuery}
+            schemaReady={Boolean(schema?.tables?.length)}
+          />
+
+          <SQLPreviewCard
+            queryResult={queryResult}
+            onExecute={handleExecuteQuery}
+            executing={loadingExecute}
+            dbConnected={Boolean(dbStatus?.connected)}
+          />
+
+          <ResultsGrid results={executionResults} error={executionError} />
+        </main>
+      </div>
+
+      <DatabaseModal
+        isOpen={isDbModalOpen}
+        onClose={() => setIsDbModalOpen(false)}
+        onConnect={handleConnectDb}
+        onDisconnect={handleDisconnectDb}
+        dbStatus={dbStatus}
+        loading={loadingDb}
+      />
+
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
+    </div>
+  );
 }
-
-export default App

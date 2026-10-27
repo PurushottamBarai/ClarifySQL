@@ -1,0 +1,13 @@
+[
+  {
+    "_id": "b552dbad-3991-46ee-95e2-1364551859ba",
+    "name": "ptqwerty",
+    "email": "ptqwerty47@gmail.com",
+    "passwordHash": null,
+    "authProvider": "google",
+    "providerId": "100965294578637405014",
+    "avatarUrl": "https://lh3.googleusercontent.com/a/ACg8ocJMWt1U-oli0latSKxWLoJiV1Q-OjNuRr9AaUZSXwDRzZsp0g8=s96-c",
+    "createdAt": "2026-10-27T15:29:10.074Z",
+    "updatedAt": "2026-10-27T15:29:10.074Z"
+  }
+]
