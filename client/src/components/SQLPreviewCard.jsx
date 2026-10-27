@@ -7,16 +7,17 @@ export default function SQLPreviewCard({
   executing,
   dbConnected,
 }) {
+  const currentDraft = queryResult?.sqlDraft || "";
   const [copied, setCopied] = useState(false);
-  const [prevSqlDraft, setPrevSqlDraft] = useState(null);
-  const [editedSql, setEditedSql] = useState("");
+  const [prevSqlDraft, setPrevSqlDraft] = useState(currentDraft);
+  const [editedSql, setEditedSql] = useState(() => (currentDraft ? formatSql(currentDraft) : ""));
   const textareaRef = useRef(null);
   const preRef = useRef(null);
   const gutterRef = useRef(null);
 
-  if (queryResult?.sqlDraft !== prevSqlDraft) {
-    setPrevSqlDraft(queryResult?.sqlDraft || null);
-    setEditedSql(queryResult?.sqlDraft ? formatSql(queryResult.sqlDraft) : "");
+  if (currentDraft !== prevSqlDraft) {
+    setPrevSqlDraft(currentDraft);
+    setEditedSql(currentDraft ? formatSql(currentDraft) : "");
   }
 
   if (!queryResult || queryResult.status !== "clear" || !queryResult.sqlDraft) {
