@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import dns from 'dns';
 
 export async function connectMongo() {
+  if (mongoose.connection.readyState >= 1) return true;
   const uri = process.env.MONGODB_URI;
   if (!uri) {
     console.warn('[mongo] MONGODB_URI is not set in .env. Skipping MongoDB Atlas connection.');
