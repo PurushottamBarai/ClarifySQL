@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js';
 import {
@@ -153,6 +154,112 @@ export async function getMe(req, res) {
         avatarUrl: user.avatarUrl,
         authProvider: user.authProvider,
         createdAt: user.createdAt
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password, storedHash) {
+  if (!storedHash || !storedHash.includes(':')) return false;
+  const [salt, key] = storedHash.split(':');
+  const keyBuffer = Buffer.from(key, 'hex');
+  const derivedKey = crypto.scryptSync(password, salt, 64);
+  return crypto.timingSafeEqual(keyBuffer, derivedKey);
+}
+
+export async function signup(req, res) {
+  try {
+    const { name, email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    }
+    const cleanEmail = email.toLowerCase().trim();
+    const existing = await User.findOne({ email: cleanEmail });
+    if (existing) {
+      return res.status(400).json({ error: 'An account with this email already exists' });
+    }
+
+    const passwordHash = hashPassword(password);
+    const user = await User.create({
+      name: (name || cleanEmail.split('@')[0]).trim(),
+      email: cleanEmail,
+      passwordHash,
+      authProvider: 'local'
+    });
+
+    const token = generateToken(user._id);
+    setAuthCookie(res, token);
+    if (req.session) {
+      req.session.user = {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        authProvider: user.authProvider
+      };
+    }
+
+    return res.status(201).json({
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        authProvider: user.authProvider
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+export async function login(req, res) {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: cleanEmail });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+    if (!user.passwordHash) {
+      return res.status(400).json({
+        error: `This account was registered using ${user.authProvider || 'OAuth'}. Please sign in with that provider.`
+      });
+    }
+    const valid = verifyPassword(password, user.passwordHash);
+    if (!valid) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const token = generateToken(user._id);
+    setAuthCookie(res, token);
+    if (req.session) {
+      req.session.user = {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        authProvider: user.authProvider
+      };
+    }
+
+    return res.status(200).json({
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        authProvider: user.authProvider
       }
     });
   } catch (err) {

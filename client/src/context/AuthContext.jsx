@@ -22,6 +22,18 @@ export function AuthProvider({ children }) {
     loadUser();
   }, []);
 
+  const login = async (credentials) => {
+    const res = await api.login(credentials);
+    setUser(res.user);
+    return res.user;
+  };
+
+  const signup = async (data) => {
+    const res = await api.signup(data);
+    setUser(res.user);
+    return res.user;
+  };
+
   const logout = async () => {
     try {
       await api.logout();
@@ -31,7 +43,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

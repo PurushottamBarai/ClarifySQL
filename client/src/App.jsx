@@ -6,12 +6,44 @@ import AuthModal from "./components/AuthModal";
 import QueryConsole from "./components/QueryConsole";
 import SQLPreviewCard from "./components/SQLPreviewCard";
 import ResultsGrid from "./components/ResultsGrid";
+import LandingPage from "./pages/LandingPage";
+import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
+import ContactPage from "./pages/ContactPage";
+import AboutPage from "./pages/AboutPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import TermsPage from "./pages/TermsPage";
 import { api } from "./api/client";
 import { useAuth } from "./context/AuthContext";
 import "./App.css";
 
 export default function App() {
   const { user, logout } = useAuth();
+
+  // Simple client-side path router supporting /, /login, /signup, /app
+  const [currentRoute, setCurrentRoute] = useState(() => {
+    const path = window.location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
+    return path;
+  });
+
+  const handleNavigate = (path) => {
+    const clean = path.toLowerCase().replace(/\/+$/, '') || '/';
+    if (window.location.pathname !== clean) {
+      window.history.pushState({}, '', clean);
+    }
+    setCurrentRoute(clean);
+    window.scrollTo(0, 0);
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const path = window.location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
+      setCurrentRoute(path);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   const [schema, setSchema] = useState(null);
   const [dbStatus, setDbStatus] = useState(null);
   const [isDbModalOpen, setIsDbModalOpen] = useState(false);
@@ -165,12 +197,12 @@ export default function App() {
         setQueryResult(res);
         setClarification(null);
       } else if (res.status === "unsupported") {
-        alert(`Request unsupported: ${res.reason}`);
+        alert(`Unsupported Request: ${res.reason}`);
         setQueryResult(null);
         setClarification(null);
       }
     } catch (err) {
-      alert(`Clarification error: ${err.message}`);
+      alert(`Query error: ${err.message}`);
     } finally {
       setLoadingQuery(false);
     }
@@ -192,10 +224,9 @@ export default function App() {
   const handleRefreshSchema = async () => {
     try {
       setLoadingSchema(true);
-      const dbRes = await api.getDbStatus();
-      setDbStatus(dbRes);
-      if (dbRes?.schema) {
-        setSchema(dbRes.schema);
+      if (dbStatus?.connected) {
+        const dbRes = await api.getDbStatus();
+        if (dbRes?.schema) setSchema(dbRes.schema);
       } else {
         const schemaRes = await api.getSchema();
         if (schemaRes?.schema) setSchema(schemaRes.schema);
@@ -221,12 +252,49 @@ export default function App() {
     }
   };
 
+  // Route 1: Landing Page
+  if (currentRoute === '/' || currentRoute === '') {
+    return <LandingPage onNavigate={handleNavigate} />;
+  }
+
+  // Route 2: Login Page
+  if (currentRoute === '/login') {
+    return <LoginPage onNavigate={handleNavigate} />;
+  }
+
+  // Route 3: Signup Page
+  if (currentRoute === '/signup') {
+    return <SignupPage onNavigate={handleNavigate} />;
+  }
+
+  // Route 4: Contact Page
+  if (currentRoute === '/contact') {
+    return <ContactPage onNavigate={handleNavigate} />;
+  }
+
+  // Route 5: About Page
+  if (currentRoute === '/about') {
+    return <AboutPage onNavigate={handleNavigate} />;
+  }
+
+  // Route 6: Privacy Policy Page
+  if (currentRoute === '/privacy') {
+    return <PrivacyPage onNavigate={handleNavigate} />;
+  }
+
+  // Route 7: Terms of Service Page
+  if (currentRoute === '/terms') {
+    return <TermsPage onNavigate={handleNavigate} />;
+  }
+
+  // Route 8: Main ClarifySQL App Console (/app)
   return (
     <div className="app-layout">
       <Header
         dbStatus={dbStatus}
         onOpenDbModal={() => setIsDbModalOpen(true)}
         onReset={handleReset}
+        onNavigate={handleNavigate}
       />
 
       <div
@@ -241,7 +309,7 @@ export default function App() {
             dbStatus={dbStatus}
             onRefresh={handleRefreshSchema}
             user={user}
-            onOpenAuthModal={() => setIsAuthModalOpen(true)}
+            onOpenAuthModal={() => handleNavigate('/login')}
             onLogout={logout}
           />
           {/* Draggable Resizer Handle */}

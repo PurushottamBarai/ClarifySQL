@@ -1,5 +1,7 @@
 # ClarifySQL
 
+<div align="center">
+
 ### Natural Language MySQL Clarification and Guarded Query Engine
 
 [![Production Live](https://img.shields.io/badge/Production-Live-success)](https://clarify-sql-xi.vercel.app/)
@@ -11,13 +13,15 @@
 
 **[Experience Live on clarify-sql-xi.vercel.app](https://clarify-sql-xi.vercel.app/)**
 
+</div>
+
 ---
 
 ## Overview
 
-ClarifySQL is an intelligent Natural Language to MySQL query assistant and clarification engine. It bridges the gap between non-technical questions and production database queries by eliminating hallucinations, interactively resolving business ambiguity, and enforcing strict read-only query execution guards.
+**ClarifySQL** is a modern, intelligent Natural Language to MySQL query assistant and clarification engine. It bridges the gap between non-technical questions and production database queries by eliminating hallucinations, interactively resolving business ambiguity, and enforcing strict read-only query execution guards.
 
-Unlike traditional text-to-SQL tools that guess user intent or generate dangerous operations directly against live tables, ClarifySQL parses uploaded SQL DDL definitions, validates live MySQL compatibility, asks targeted multiple-choice clarification questions when terms are vague, and safely executes approved read-only queries with strict timeouts and row bounds.
+Unlike traditional text-to-SQL tools that guess user intent or generate dangerous operations directly against live tables, **ClarifySQL** parses uploaded SQL DDL definitions, validates live MySQL compatibility, asks targeted multiple-choice clarification questions when terms are vague, and safely executes approved read-only queries with strict timeouts and row bounds.
 
 ---
 

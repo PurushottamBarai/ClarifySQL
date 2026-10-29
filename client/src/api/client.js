@@ -32,5 +32,8 @@ export const api = {
   executeQuery: (sql) => request('/query/execute', { method: 'POST', body: JSON.stringify({ sql }) }),
   resetQuery: () => request('/query/reset', { method: 'POST' }),
   getMe: () => request('/auth/me', { method: 'GET' }),
-  logout: () => request('/auth/logout', { method: 'POST' })
+  signup: (data) => request('/auth/signup', { method: 'POST', body: JSON.stringify(data) }),
+  login: (data) => request('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+  logout: () => request('/auth/logout', { method: 'POST' }),
+  sendContact: (data) => request('/contact', { method: 'POST', body: JSON.stringify(data) })
 };

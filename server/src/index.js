@@ -2,7 +2,6 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
-
 import cookieParser from 'cookie-parser';
 
 import healthRoutes from './routes/healthRoutes.js';
@@ -10,6 +9,7 @@ import schemaRoutes from './routes/schemaRoutes.js';
 import dbRoutes from './routes/dbRoutes.js';
 import queryRoutes from './routes/queryRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import contactRoutes from './routes/contact.routes.js';
 import { connectMongo } from './config/mongo.js';
 
 connectMongo();
@@ -51,6 +51,7 @@ app.use('/api/schema', schemaRoutes);
 app.use('/api/db', dbRoutes);
 app.use('/api/query', queryRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/contact', contactRoutes);
 
 app.use((err, req, res, next) => {
   res.status(500).json({
@@ -58,6 +59,10 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(port, () => {
-  console.log(`ClarifySQL Backend running on http://localhost:${port}`);
-});
+if (process.env.VERCEL !== '1') {
+  app.listen(port, () => {
+    console.log(`ClarifySQL Backend running on http://localhost:${port}`);
+  });
+}
+
+export default app;
