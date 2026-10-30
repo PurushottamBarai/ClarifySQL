@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js';
+import { sendPasswordResetEmail } from '../services/email.service.js';
 import {
   getGitHubAuthUrl,
   exchangeGitHubCode,
@@ -12,6 +13,10 @@ import {
 const COOKIE_NAME = 'token';
 const JWT_EXPIRES_IN = '7d';
 const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+const RESET_TOKEN_BYTES = 32;
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
+const RESET_TOKEN_PATTERN = /^[a-f0-9]{64}$/i;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function generateToken(userId) {
   return jwt.sign(
@@ -49,7 +54,13 @@ function getCallbackUrl(req, provider) {
 }
 
 function getClientRedirectBase(req) {
-  return process.env.CLIENT_URL || (req.get('host') ? `http://${req.get('host')}` : 'http://localhost:5173');
+  if (process.env.CLIENT_URL) {
+    return process.env.CLIENT_URL.replace(/\/+$/, '');
+  }
+  const forwardedProto = (req.get('x-forwarded-proto') || '').split(',')[0].trim();
+  const protocol = forwardedProto === 'https' || req.protocol === 'https' ? 'https' : 'http';
+  const host = req.get('host') || 'localhost:5173';
+  return `${protocol}://${host}`;
 }
 
 export async function githubRedirect(req, res) {
@@ -177,12 +188,15 @@ function verifyPassword(password, storedHash) {
 
 export async function signup(req, res) {
   try {
-    const { name, email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+    const { name, email, password, acceptedTerms } = req.body;
+    if (!name || !name.trim() || !email || !password) {
+      return res.status(400).json({ error: 'Name, email and password are required' });
     }
     if (password.length < 8) {
       return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    }
+    if (acceptedTerms !== true) {
+      return res.status(400).json({ error: 'You must accept the Terms of Service and Privacy Policy' });
     }
     const cleanEmail = email.toLowerCase().trim();
     const existing = await User.findOne({ email: cleanEmail });
@@ -195,7 +209,8 @@ export async function signup(req, res) {
       name: (name || cleanEmail.split('@')[0]).trim(),
       email: cleanEmail,
       passwordHash,
-      authProvider: 'local'
+      authProvider: 'local',
+      termsAcceptedAt: new Date()
     });
 
     const token = generateToken(user._id);
@@ -279,4 +294,77 @@ export async function logout(req, res) {
     req.session.user = null;
   }
   return res.status(200).json({ message: 'Logged out successfully' });
+}
+
+function hashResetToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+function buildResetUrl(req, token) {
+  const baseUrl = getClientRedirectBase(req).replace(/\/+$/, '');
+  return `${baseUrl}/reset-password/${token}`;
+}
+
+export async function forgotPassword(req, res) {
+  try {
+    const { email } = req.body || {};
+    if (!email || typeof email !== 'string' || !EMAIL_PATTERN.test(email.trim())) {
+      return res.status(400).json({ error: 'Enter a valid email address' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: cleanEmail });
+
+    if (user && user.passwordHash) {
+      const resetToken = crypto.randomBytes(RESET_TOKEN_BYTES).toString('hex');
+      user.resetPasswordToken = hashResetToken(resetToken);
+      user.resetPasswordExpires = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+      await user.save();
+
+      await sendPasswordResetEmail({
+        to: user.email,
+        resetUrl: buildResetUrl(req, resetToken)
+      });
+    }
+
+    return res.status(200).json({
+      message: 'If an account with that email exists, a password reset link has been sent.'
+    });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    return res.status(500).json({ error: 'Unable to process the password reset request' });
+  }
+}
+
+export async function resetPassword(req, res) {
+  try {
+    const { token } = req.params;
+    const { password } = req.body || {};
+
+    if (!token || !RESET_TOKEN_PATTERN.test(token)) {
+      return res.status(400).json({ error: 'Password reset link is invalid or has expired' });
+    }
+    if (!password || typeof password !== 'string' || password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    }
+
+    const user = await User.findOne({
+      resetPasswordToken: hashResetToken(token),
+      resetPasswordExpires: { $gt: new Date() }
+    }).select('+resetPasswordToken +resetPasswordExpires');
+
+    if (!user) {
+      return res.status(400).json({ error: 'Password reset link is invalid or has expired' });
+    }
+
+    user.passwordHash = hashPassword(password);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    return res.status(200).json({ message: 'Password has been reset successfully' });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    return res.status(500).json({ error: 'Unable to reset the password' });
+  }
 }

@@ -9,6 +9,8 @@ import ResultsGrid from "./components/ResultsGrid";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ContactPage from "./pages/ContactPage";
 import AboutPage from "./pages/AboutPage";
 import PrivacyPage from "./pages/PrivacyPage";
@@ -265,6 +267,21 @@ export default function App() {
   // Route 3: Signup Page
   if (currentRoute === '/signup') {
     return <SignupPage onNavigate={handleNavigate} />;
+  }
+
+  // Route 3a: Forgot Password Page
+  if (currentRoute === '/forgot-password') {
+    return <ForgotPasswordPage onNavigate={handleNavigate} />;
+  }
+
+  // Route 3b: Reset Password Page
+  if (currentRoute === '/reset-password') {
+    return <ResetPasswordPage token="" onNavigate={handleNavigate} />;
+  }
+
+  const resetPasswordMatch = currentRoute.match(/^\/reset-password\/([^/]+)$/);
+  if (resetPasswordMatch) {
+    return <ResetPasswordPage token={resetPasswordMatch[1]} onNavigate={handleNavigate} />;
   }
 
   // Route 4: Contact Page

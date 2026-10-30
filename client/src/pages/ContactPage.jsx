@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { api } from '../api/client';
@@ -14,6 +14,13 @@ export default function ContactPage({ onNavigate }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const successHeadingRef = useRef(null);
+
+  useEffect(() => {
+    if (submitted) {
+      successHeadingRef.current?.focus();
+    }
+  }, [submitted]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,7 +69,7 @@ export default function ContactPage({ onNavigate }) {
               <div>
                 <h2 className="info-card-title">Get in Touch</h2>
                 <p className="info-card-desc">
-                  We respond promptly to all feedback, database schema inquiries, and issue reports.
+                  We reply to every message within 1–2 business days.
                 </p>
 
                 <div className="info-items-list">
@@ -75,12 +82,12 @@ export default function ContactPage({ onNavigate }) {
 
                   <div className="info-item">
                     <span className="info-item-label">RESPONSE TIME</span>
-                    <span className="info-item-text">Within 24–48 hours</span>
+                    <span className="info-item-text">Within 1–2 business days</span>
                   </div>
 
                   <div className="info-item">
                     <span className="info-item-label">PLATFORM</span>
-                    <span className="info-item-text">ClarifySQL Engine v1.0</span>
+                    <span className="info-item-text">ClarifySQL Engine</span>
                   </div>
                 </div>
               </div>
@@ -93,13 +100,13 @@ export default function ContactPage({ onNavigate }) {
             {/* Right Contact Form Card */}
             <div className="contact-form-card">
               {submitted ? (
-                <div className="contact-success-state">
+                <div className="contact-success-state" role="status">
                   <div className="success-icon-badge">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   </div>
-                  <h3 className="success-heading">Message Sent!</h3>
+                  <h3 className="success-heading" ref={successHeadingRef} tabIndex={-1}>Message sent</h3>
                   <p className="success-subtext">
                     Thank you, <strong className="text-highlight">{formData.name}</strong>. Your message has been sent to our team. We will review it and get back to you at <strong className="text-highlight">{formData.email}</strong> shortly.
                   </p>
@@ -122,7 +129,7 @@ export default function ContactPage({ onNavigate }) {
               ) : (
                 <form onSubmit={handleSubmit} className="contact-form">
                   {error && (
-                    <div className="auth-error-banner" style={{ marginBottom: '1.25rem' }}>
+                    <div id="contact-error" className="auth-error-banner" role="alert" style={{ marginBottom: '1.25rem' }}>
                       {error}
                     </div>
                   )}
@@ -138,6 +145,8 @@ export default function ContactPage({ onNavigate }) {
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       required
                       autoComplete="name"
+                      aria-invalid={error && !formData.name.trim() ? 'true' : undefined}
+                      aria-describedby={error ? 'contact-error' : undefined}
                     />
                     <label className="floating-label" htmlFor="contact-name">
                       Name <span className="req-star">*</span>
@@ -155,6 +164,8 @@ export default function ContactPage({ onNavigate }) {
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       required
                       autoComplete="email"
+                      aria-invalid={error && !formData.email.trim() ? 'true' : undefined}
+                      aria-describedby={error ? 'contact-error' : undefined}
                     />
                     <label className="floating-label" htmlFor="contact-email">
                       Email <span className="req-star">*</span>
@@ -171,6 +182,8 @@ export default function ContactPage({ onNavigate }) {
                       value={formData.message}
                       onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                       required
+                      aria-invalid={error && !formData.message.trim() ? 'true' : undefined}
+                      aria-describedby={error ? 'contact-error' : undefined}
                     />
                     <label className="floating-label" htmlFor="contact-message">
                       Message <span className="req-star">*</span>
@@ -180,6 +193,7 @@ export default function ContactPage({ onNavigate }) {
                   <button
                     type="submit"
                     disabled={loading}
+                    aria-busy={loading}
                     className="auth-submit-btn"
                     style={{ width: '100%', marginTop: '0.5rem' }}
                   >

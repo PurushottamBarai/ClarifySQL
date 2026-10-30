@@ -64,6 +64,10 @@ ${safeMessage}
 export async function sendPasswordResetEmail({ to, resetUrl }) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('RESEND_API_KEY is not configured; password reset email was not sent');
+      return { success: false, error: 'Email service not configured' };
+    }
     console.warn(`[DEV] Password reset link for ${to}: ${resetUrl}`);
     return { success: true, simulated: true };
   }
