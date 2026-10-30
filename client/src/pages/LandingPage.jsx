@@ -33,7 +33,7 @@ LIMIT 10;`;
           <div className="hero-left">
             <div className="hero-badge">
               <span className="badge-dot"></span>
-              <span className="badge-text">ClarifySQL Engine v1.0</span>
+              <span className="badge-text">ClarifySQL Engine</span>
             </div>
 
             <h1 className="hero-title">

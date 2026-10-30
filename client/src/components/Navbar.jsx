@@ -1,7 +1,9 @@
 import { useAuth } from '../context/AuthContext';
+import BrandLogo from './BrandLogo';
 
 export default function Navbar({ currentRoute, onNavigate }) {
   const { user } = useAuth();
+  const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password'].includes(currentRoute);
 
   const toggleTheme = () => {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -19,12 +21,7 @@ export default function Navbar({ currentRoute, onNavigate }) {
       <div className="nav-container">
         {/* Brand */}
         <div className="nav-brand" onClick={() => onNavigate('/')} title="ClarifySQL">
-          <img
-            src="/logo.png"
-            alt="ClarifySQL"
-            className="nav-brand-logo"
-            style={{ height: '28px', width: 'auto', display: 'block', objectFit: 'contain' }}
-          />
+          <BrandLogo className="nav-brand-logo" />
         </div>
 
         {/* Right Nav Actions */}
@@ -63,6 +60,18 @@ export default function Navbar({ currentRoute, onNavigate }) {
                 </svg>
               </button>
             </>
+          ) : isAuthPage ? (
+            <button
+              type="button"
+              className="nav-link-btn nav-back-link"
+              onClick={() => onNavigate('/')}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5" />
+                <path d="M12 19l-7-7 7-7" />
+              </svg>
+              Back to home
+            </button>
           ) : (
             <>
               <button

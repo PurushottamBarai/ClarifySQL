@@ -35,5 +35,7 @@ export const api = {
   signup: (data) => request('/auth/signup', { method: 'POST', body: JSON.stringify(data) }),
   login: (data) => request('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   logout: () => request('/auth/logout', { method: 'POST' }),
+  forgotPassword: (data) => request('/auth/forgot-password', { method: 'POST', body: JSON.stringify(data) }),
+  resetPassword: (token, data) => request(`/auth/reset-password/${encodeURIComponent(token)}`, { method: 'POST', body: JSON.stringify(data) }),
   sendContact: (data) => request('/contact', { method: 'POST', body: JSON.stringify(data) })
 };

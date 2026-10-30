@@ -11,16 +11,31 @@ export default function LoginPage({ onNavigate }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const validateFields = () => {
+    const errors = {};
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      errors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      errors.email = 'Enter a valid email address';
+    }
+    if (!password) {
+      errors.password = 'Password is required';
+    }
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email.trim() || !password) {
-      setError('Please enter your email and password');
+    setError(null);
+    if (!validateFields()) {
       return;
     }
     try {
       setLoading(true);
-      setError(null);
       await login({ email, password });
       onNavigate('/app');
     } catch (err) {
@@ -64,11 +79,9 @@ export default function LoginPage({ onNavigate }) {
               </div>
 
               <div className="auth-micro-badges">
-                <span>AES-256 encrypted cookies</span>
-                <span className="bullet">&bull;</span>
-                <span>Strict read-only bounds</span>
-                <span className="bullet">&bull;</span>
-                <span>Zero schema modification</span>
+                <span className="micro-badge">AES-256 encrypted cookies</span>
+                <span className="micro-badge">Strict read-only bounds</span>
+                <span className="micro-badge">Zero schema modification</span>
               </div>
             </div>
           </div>
@@ -91,7 +104,7 @@ export default function LoginPage({ onNavigate }) {
               </div>
 
               {error && (
-                <div className="auth-error-banner">
+                <div className="auth-error-banner" role="alert" aria-live="assertive">
                   {error}
                 </div>
               )}
@@ -104,14 +117,26 @@ export default function LoginPage({ onNavigate }) {
                     className="floating-input"
                     placeholder=" "
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                    }}
                     required
                     autoComplete="email"
+                    autoFocus
+                    disabled={loading}
+                    aria-invalid={!!fieldErrors.email}
+                    aria-describedby={fieldErrors.email ? 'login-email-error' : undefined}
                   />
                   <label className="floating-label" htmlFor="login-email">
                     Email <span className="req-star">*</span>
                   </label>
                 </div>
+                {fieldErrors.email && (
+                  <p className="field-error" id="login-email-error" role="alert">
+                    {fieldErrors.email}
+                  </p>
+                )}
 
                 <div className={`floating-field-group ${password ? 'has-value' : ''}`}>
                   <input
@@ -120,9 +145,15 @@ export default function LoginPage({ onNavigate }) {
                     className="floating-input password-input"
                     placeholder=" "
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }));
+                    }}
                     required
                     autoComplete="current-password"
+                    disabled={loading}
+                    aria-invalid={!!fieldErrors.password}
+                    aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
                   />
                   <label className="floating-label" htmlFor="login-password">
                     Password <span className="req-star">*</span>
@@ -132,6 +163,8 @@ export default function LoginPage({ onNavigate }) {
                     className="eye-toggle-btn"
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label="Toggle password visibility"
+                    aria-pressed={showPassword}
+                    disabled={loading}
                   >
                     {showPassword ? (
                       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -146,14 +179,19 @@ export default function LoginPage({ onNavigate }) {
                     )}
                   </button>
                 </div>
+                {fieldErrors.password && (
+                  <p className="field-error" id="login-password-error" role="alert">
+                    {fieldErrors.password}
+                  </p>
+                )}
 
                 <div className="field-helper-row">
                   <a
-                    href="#forgot"
+                    href="/forgot-password"
                     className="field-link"
                     onClick={(e) => {
                       e.preventDefault();
-                      alert('Password reset link will be sent to your registered email address.');
+                      onNavigate('/forgot-password');
                     }}
                   >
                     Forgot password?
@@ -165,7 +203,14 @@ export default function LoginPage({ onNavigate }) {
                   className="auth-submit-btn"
                   disabled={loading}
                 >
-                  {loading ? 'Logging in...' : 'Log in'}
+                  {loading ? (
+                    <>
+                      <span className="btn-spinner" aria-hidden="true" />
+                      Logging in...
+                    </>
+                  ) : (
+                    'Log in'
+                  )}
                 </button>
               </form>
 
@@ -184,7 +229,7 @@ export default function LoginPage({ onNavigate }) {
         </div>
       </main>
 
-      <Footer onNavigate={onNavigate} />
+      <Footer onNavigate={onNavigate} currentRoute="/login" />
     </div>
   );
 }

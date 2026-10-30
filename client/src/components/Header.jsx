@@ -1,3 +1,5 @@
+import BrandLogo from './BrandLogo';
+
 export default function Header({ dbStatus, onOpenDbModal, onReset, onNavigate }) {
   return (
     <header className="header">
@@ -7,11 +9,7 @@ export default function Header({ dbStatus, onOpenDbModal, onReset, onNavigate })
         style={{ cursor: 'pointer' }}
         title="Return to Landing Page"
       >
-        <img
-          src="/logo.png"
-          alt="ClarifySQL"
-          style={{ height: '28px', width: 'auto', display: 'block', objectFit: 'contain' }}
-        />
+        <BrandLogo />
       </div>
 
       <div className="header-status">

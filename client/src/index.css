@@ -5,21 +5,21 @@
   --bg-hover: #f1f5f9;
   
   --border-light: #e2e8f0;
-  --border-focus: #0f766e;
+  --border-focus: #18181b;
 
   --text-main: #0f172a;
   --text-muted: #64748b;
   --text-dim: #94a3b8;
 
-  /* Brand Teal Palette from reference design */
-  --brand-teal: #0f766e;
-  --brand-teal-hover: #115e59;
-  --brand-teal-light: #f0fdfa;
-  --brand-teal-border: #ccfbf1;
+  /* Brand Ink Palette (black variant) */
+  --brand-teal: #18181b;
+  --brand-teal-hover: #27272a;
+  --brand-teal-light: #f4f4f5;
+  --brand-teal-border: #e4e4e7;
 
-  --accent-primary: #0f766e;
-  --accent-primary-hover: #115e59;
-  --accent-primary-light: #f0fdfa;
+  --accent-primary: #18181b;
+  --accent-primary-hover: #27272a;
+  --accent-primary-light: #f4f4f5;
 
   --accent-success: #16a34a;
   --accent-success-light: #f0fdf4;
@@ -49,20 +49,20 @@
   --bg-hover: #3f3f46;
 
   --border-light: #27272a;
-  --border-focus: #14b8a6;
+  --border-focus: #e4e4e7;
 
   --text-main: #f4f4f5;
   --text-muted: #a1a1aa;
   --text-dim: #71717a;
 
-  --brand-teal: #14b8a6;
-  --brand-teal-hover: #2dd4bf;
-  --brand-teal-light: #134e4a;
-  --brand-teal-border: #115e59;
+  --brand-teal: #e4e4e7;
+  --brand-teal-hover: #fafafa;
+  --brand-teal-light: #27272a;
+  --brand-teal-border: #3f3f46;
 
-  --accent-primary: #14b8a6;
-  --accent-primary-hover: #2dd4bf;
-  --accent-primary-light: #134e4a;
+  --accent-primary: #e4e4e7;
+  --accent-primary-hover: #fafafa;
+  --accent-primary-light: #27272a;
 }
 
 * {
