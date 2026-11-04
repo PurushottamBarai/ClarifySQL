@@ -1,24 +1,19 @@
 services:
   # -------------------------------------------------------------
-  # 1. ClarifySQL Backend (Node.js Express Web Service)
+  # ClarifySQL Fullstack Service (Frontend SPA + Backend API)
   # -------------------------------------------------------------
   - type: web
-    name: clarifysql-api
+    name: clarifysql
     runtime: node
     plan: free
     region: oregon
-    rootDir: server
-    buildCommand: npm install
+    buildCommand: npm run build
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
-      - key: CLIENT_URL
-        fromStaticSite:
-          name: clarifysql-client
-          property: url
       - key: MONGODB_URI
         sync: false
       - key: JWT_SECRET
@@ -43,24 +38,3 @@ services:
         sync: false
       - key: GITHUB_CALLBACK_URL
         sync: false
-
-  # -------------------------------------------------------------
-  # 2. ClarifySQL Frontend (Vite React Static Site)
-  # -------------------------------------------------------------
-  - type: static
-    name: clarifysql-client
-    rootDir: client
-    buildCommand: npm install && npm run build
-    publishDir: dist
-    autoDeploy: true
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      - key: VITE_API_URL
-        fromService:
-          type: web
-          name: clarifysql-api
-          property: url
-

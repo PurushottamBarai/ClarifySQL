@@ -3,6 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import healthRoutes from './routes/healthRoutes.js';
 import schemaRoutes from './routes/schemaRoutes.js';
@@ -11,6 +13,10 @@ import queryRoutes from './routes/queryRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import contactRoutes from './routes/contact.routes.js';
 import { connectMongo } from './config/mongo.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const clientDist = path.resolve(__dirname, '../../client/dist');
 
 connectMongo();
 
@@ -46,6 +52,7 @@ app.use(session({
   }
 }));
 
+// API Routes
 app.use('/api/health', healthRoutes);
 app.use('/api/schema', schemaRoutes);
 app.use('/api/db', dbRoutes);
@@ -53,16 +60,24 @@ app.use('/api/query', queryRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/contact', contactRoutes);
 
+// Serve Frontend Static Assets
+app.use(express.static(clientDist));
+
+// SPA Fallback for client-side routing
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
+  res.sendFile(path.join(clientDist, 'index.html'));
+});
+
+// Error handling middleware
 app.use((err, req, res, next) => {
   res.status(500).json({
     error: err.message || 'An unexpected server error occurred.'
   });
 });
 
-if (process.env.VERCEL !== '1') {
-  app.listen(port, () => {
-    console.log(`ClarifySQL Backend running on http://localhost:${port}`);
-  });
-}
+app.listen(port, () => {
+  console.log(`ClarifySQL Server running on port ${port}`);
+});
 
 export default app;
