@@ -17,6 +17,8 @@ const RESET_TOKEN_BYTES = 32;
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
 const RESET_TOKEN_PATTERN = /^[a-f0-9]{64}$/i;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_MAX_LENGTH = 128;
 
 function generateToken(userId) {
   return jwt.sign(
@@ -24,6 +26,12 @@ function generateToken(userId) {
     process.env.JWT_SECRET || 'clarifysql_jwt_secret_dev_key_32chars',
     { expiresIn: JWT_EXPIRES_IN }
   );
+}
+
+function isIssuedBeforePasswordChange(user, issuedAtMs) {
+  if (!user.passwordChangedAt) return false;
+  if (typeof issuedAtMs !== 'number') return true;
+  return Math.floor(user.passwordChangedAt.getTime() / 1000) > Math.floor(issuedAtMs / 1000);
 }
 
 function setAuthCookie(res, token) {
@@ -90,7 +98,8 @@ export async function githubCallback(req, res) {
         name: user.name,
         email: user.email,
         avatarUrl: user.avatarUrl,
-        authProvider: user.authProvider
+        authProvider: user.authProvider,
+        authenticatedAt: Date.now()
       };
     }
     const clientUrl = getClientRedirectBase(req);
@@ -129,7 +138,8 @@ export async function googleCallback(req, res) {
         name: user.name,
         email: user.email,
         avatarUrl: user.avatarUrl,
-        authProvider: user.authProvider
+        authProvider: user.authProvider,
+        authenticatedAt: Date.now()
       };
     }
     const clientUrl = getClientRedirectBase(req);
@@ -148,11 +158,17 @@ export async function getMe(req, res) {
     if (token) {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'clarifysql_jwt_secret_dev_key_32chars');
-        user = await User.findById(decoded.id);
+        const candidate = await User.findById(decoded.id);
+        if (candidate && !isIssuedBeforePasswordChange(candidate, decoded.iat * 1000)) {
+          user = candidate;
+        }
       } catch (_) {}
     }
     if (!user && req.session?.user) {
-      user = await User.findById(req.session.user.id);
+      const candidate = await User.findById(req.session.user.id);
+      if (candidate && !isIssuedBeforePasswordChange(candidate, req.session.user.authenticatedAt)) {
+        user = candidate;
+      }
     }
     if (!user) {
       return res.status(401).json({ error: 'Not authenticated' });
@@ -188,12 +204,19 @@ function verifyPassword(password, storedHash) {
 
 export async function signup(req, res) {
   try {
-    const { name, email, password, acceptedTerms } = req.body;
-    if (!name || !name.trim() || !email || !password) {
+    const { name, email, password, acceptedTerms } = req.body || {};
+    if (
+      typeof name !== 'string' || !name.trim() ||
+      typeof email !== 'string' || !email.trim() ||
+      typeof password !== 'string' || !password
+    ) {
       return res.status(400).json({ error: 'Name, email and password are required' });
     }
-    if (password.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    if (password.length < PASSWORD_MIN_LENGTH) {
+      return res.status(400).json({ error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters long` });
+    }
+    if (password.length > PASSWORD_MAX_LENGTH) {
+      return res.status(400).json({ error: `Password must be at most ${PASSWORD_MAX_LENGTH} characters long` });
     }
     if (acceptedTerms !== true) {
       return res.status(400).json({ error: 'You must accept the Terms of Service and Privacy Policy' });
@@ -206,7 +229,7 @@ export async function signup(req, res) {
 
     const passwordHash = hashPassword(password);
     const user = await User.create({
-      name: (name || cleanEmail.split('@')[0]).trim(),
+      name: name.trim(),
       email: cleanEmail,
       passwordHash,
       authProvider: 'local',
@@ -220,7 +243,8 @@ export async function signup(req, res) {
         id: user._id,
         name: user.name,
         email: user.email,
-        authProvider: user.authProvider
+        authProvider: user.authProvider,
+        authenticatedAt: Date.now()
       };
     }
 
@@ -265,7 +289,8 @@ export async function login(req, res) {
         id: user._id,
         name: user.name,
         email: user.email,
-        authProvider: user.authProvider
+        authProvider: user.authProvider,
+        authenticatedAt: Date.now()
       };
     }
 
@@ -300,9 +325,35 @@ function hashResetToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
-function buildResetUrl(req, token) {
-  const baseUrl = getClientRedirectBase(req).replace(/\/+$/, '');
-  return `${baseUrl}/reset-password/${token}`;
+function buildResetUrl(token) {
+  const configured = process.env.CLIENT_URL;
+  if (!configured) {
+    throw new Error('CLIENT_URL is not configured');
+  }
+  const base = new URL(configured);
+  const allowedProtocols = process.env.NODE_ENV === 'production' ? ['https:'] : ['http:', 'https:'];
+  if (!allowedProtocols.includes(base.protocol)) {
+    throw new Error('CLIENT_URL must use a supported protocol');
+  }
+  return `${base.origin}/reset-password/${token}`;
+}
+
+async function issuePasswordReset(user) {
+  try {
+    const resetToken = crypto.randomBytes(RESET_TOKEN_BYTES).toString('hex');
+    const resetUrl = buildResetUrl(resetToken);
+
+    user.resetPasswordToken = hashResetToken(resetToken);
+    user.resetPasswordExpires = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+    await user.save();
+
+    const result = await sendPasswordResetEmail({ to: user.email, resetUrl });
+    if (!result.success) {
+      console.error('Password reset email was not delivered:', result.error || 'unknown error');
+    }
+  } catch (err) {
+    console.error('Password reset could not be issued:', err.message);
+  }
 }
 
 export async function forgotPassword(req, res) {
@@ -316,15 +367,8 @@ export async function forgotPassword(req, res) {
     const user = await User.findOne({ email: cleanEmail });
 
     if (user && user.passwordHash) {
-      const resetToken = crypto.randomBytes(RESET_TOKEN_BYTES).toString('hex');
-      user.resetPasswordToken = hashResetToken(resetToken);
-      user.resetPasswordExpires = new Date(Date.now() + RESET_TOKEN_TTL_MS);
-      await user.save();
-
-      await sendPasswordResetEmail({
-        to: user.email,
-        resetUrl: buildResetUrl(req, resetToken)
-      });
+      // Not awaited so the response time does not reveal whether the account exists.
+      void issuePasswordReset(user);
     }
 
     return res.status(200).json({
@@ -344,8 +388,11 @@ export async function resetPassword(req, res) {
     if (!token || !RESET_TOKEN_PATTERN.test(token)) {
       return res.status(400).json({ error: 'Password reset link is invalid or has expired' });
     }
-    if (!password || typeof password !== 'string' || password.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    if (!password || typeof password !== 'string' || password.length < PASSWORD_MIN_LENGTH) {
+      return res.status(400).json({ error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters long` });
+    }
+    if (password.length > PASSWORD_MAX_LENGTH) {
+      return res.status(400).json({ error: `Password must be at most ${PASSWORD_MAX_LENGTH} characters long` });
     }
 
     const user = await User.findOne({
@@ -358,6 +405,7 @@ export async function resetPassword(req, res) {
     }
 
     user.passwordHash = hashPassword(password);
+    user.passwordChangedAt = new Date();
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();

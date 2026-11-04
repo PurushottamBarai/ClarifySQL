@@ -32,6 +32,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    passwordChangedAt: {
+      type: Date,
+      default: null,
+    },
     termsAcceptedAt: {
       type: Date,
       default: null,
@@ -39,6 +43,7 @@ const userSchema = new mongoose.Schema(
     resetPasswordToken: {
       type: String,
       select: false,
+      index: { sparse: true },
     },
     resetPasswordExpires: {
       type: Date,

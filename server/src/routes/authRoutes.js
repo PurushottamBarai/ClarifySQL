@@ -13,17 +13,28 @@ import {
   resetPassword
 } from '../controllers/auth.controller.js';
 
+function positiveIntegerSetting(name, fallback) {
+  const raw = process.env[name];
+  if (raw === undefined) return fallback;
+  if (!/^[1-9]\d*$/.test(raw) || !Number.isSafeInteger(Number(raw))) {
+    throw new Error(`Invalid ${name}`);
+  }
+  return Number(raw);
+}
+
+const resetRateLimitWindowMs = positiveIntegerSetting('RESET_RATE_LIMIT_WINDOW_MS', 15 * 60 * 1000);
+
 const forgotPasswordLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
+  windowMs: resetRateLimitWindowMs,
+  max: positiveIntegerSetting('RESET_REQUEST_RATE_LIMIT_MAX', 5),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many password reset requests. Please try again later.' }
 });
 
 const resetPasswordLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
+  windowMs: resetRateLimitWindowMs,
+  max: positiveIntegerSetting('RESET_ATTEMPT_RATE_LIMIT_MAX', 10),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many password reset attempts. Please try again later.' }
