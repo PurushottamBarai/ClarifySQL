@@ -1,3 +1,5 @@
+const EMAIL_REQUEST_TIMEOUT_MS = 10000;
+
 function escapeHtml(str) {
   if (typeof str !== 'string') return '';
   return str
@@ -63,6 +65,7 @@ ${safeMessage}
 
 export async function sendPasswordResetEmail({ to, resetUrl }) {
   const apiKey = process.env.RESEND_API_KEY;
+  const configuredFrom = process.env.RESEND_FROM_EMAIL;
   if (!apiKey) {
     if (process.env.NODE_ENV === 'production') {
       console.error('RESEND_API_KEY is not configured; password reset email was not sent');
@@ -72,15 +75,22 @@ export async function sendPasswordResetEmail({ to, resetUrl }) {
     return { success: true, simulated: true };
   }
 
+  if (!configuredFrom) {
+    console.error('RESEND_FROM_EMAIL is not configured; password reset email was not sent');
+    return { success: false, error: 'Email sender not configured' };
+  }
+  const from = configuredFrom.includes('<') ? configuredFrom : `ClarifySQL <${configuredFrom}>`;
+
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
+      signal: AbortSignal.timeout(EMAIL_REQUEST_TIMEOUT_MS),
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: process.env.RESEND_FROM_EMAIL || 'ClarifySQL <support@onshare.me>',
+        from,
         to: [to],
         subject: 'Reset your ClarifySQL password',
         html: `
@@ -89,7 +99,7 @@ export async function sendPasswordResetEmail({ to, resetUrl }) {
             <p style="font-size: 14px; line-height: 1.5; color: #52525b; margin-bottom: 24px;">
               Click the button below to reset your ClarifySQL password. This link will expire in 1 hour.
             </p>
-            <a href="${resetUrl}" style="display: inline-block; background-color: #0f766e; color: #ffffff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500;">
+            <a href="${escapeHtml(resetUrl)}" style="display: inline-block; background-color: #0f766e; color: #ffffff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500;">
               Reset Password
             </a>
             <p style="font-size: 12px; color: #a1a1aa; margin-top: 32px;">
@@ -99,9 +109,11 @@ export async function sendPasswordResetEmail({ to, resetUrl }) {
         `
       })
     });
-    return { success: res.ok };
+    if (!res.ok) {
+      return { success: false, error: `Email provider responded with HTTP ${res.status}` };
+    }
+    return { success: true };
   } catch (err) {
-    console.error('Email sending failed:', err.message);
     return { success: false, error: err.message };
   }
 }
