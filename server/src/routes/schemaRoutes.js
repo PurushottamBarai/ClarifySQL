@@ -1,30 +1,21 @@
 import express from 'express';
 import { parseDDL } from '../schema/ddlParser.js';
+import { compareSchemas } from '../schema/schemaComparator.js';
 
 const router = express.Router();
 
-router.post('/import', (req, res, next) => {
+router.post('/import', (req, res) => {
   try {
-    const { sqlContent } = req.body;
-    if (!sqlContent || typeof sqlContent !== 'string') {
-      return res.status(400).json({ error: 'Schema SQL content is required.' });
-    }
-
-    if (sqlContent.length > 2 * 1024 * 1024) {
-      return res.status(400).json({ error: 'Schema file exceeds maximum limit of 2MB.' });
-    }
-
-    const { tables, warnings } = parseDDL(sqlContent);
-
-    req.session.importedSchema = { tables, warnings };
-
-    res.json({
-      success: true,
-      tablesCount: tables.length,
-      schema: { tables, warnings }
-    });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
+    const schema = parseDDL(req.body?.sqlContent);
+    req.session.importedSchema = schema;
+    req.session.pendingQuery = null;
+    req.session.pendingQueryContext = null;
+    req.session.queryContext = null;
+    req.session.clarificationHistory = [];
+    const compatibility = req.session.liveSchema ? compareSchemas(schema, req.session.liveSchema) : undefined;
+    res.json({ success: true, tablesCount: schema.tables.length, schema, ...(compatibility ? { compatibility } : {}) });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 });
 
