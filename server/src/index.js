@@ -63,9 +63,11 @@ app.use('/api/contact', contactRoutes);
 // Serve Frontend Static Assets
 app.use(express.static(clientDist));
 
-// SPA Fallback for client-side routing
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api')) return next();
+// SPA Fallback for client-side routing (Express 5 compatible)
+app.use((req, res, next) => {
+  if (req.method !== 'GET' || req.path.startsWith('/api')) {
+    return next();
+  }
   res.sendFile(path.join(clientDist, 'index.html'));
 });
 
