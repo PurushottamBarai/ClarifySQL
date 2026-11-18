@@ -4,14 +4,11 @@
 
 ### Natural Language MySQL Clarification and Guarded Query Engine
 
-[![Production Live](https://img.shields.io/badge/Production-Live-success)](https://clarify-sql-xi.vercel.app/)
 [![React](https://img.shields.io/badge/Frontend-React%2019%20+%20Vite-blue)](https://react.dev)
 [![Node.js](https://img.shields.io/badge/Backend-Node.js%20ESM-green)](https://nodejs.org)
 [![Groq AI](https://img.shields.io/badge/AI-Groq%20Inference-orange)](https://groq.com)
 [![Database](https://img.shields.io/badge/Database-MySQL%20+%20MongoDB-blueviolet)](https://www.mysql.com)
 [![License](https://img.shields.io/badge/License-ISC-lightgrey)](LICENSE)
-
-**[Experience Live on clarify-sql-xi.vercel.app](https://clarify-sql-xi.vercel.app/)**
 
 </div>
 
