@@ -22,7 +22,8 @@ test('public destinations enforce TLS and exact hostname and port allowlists', a
     { DATABASE_ALLOWED_HOSTS: 'example.com' }, { DATABASE_ALLOWED_HOSTS: '*.example.com' },
     { DATABASE_ALLOWED_HOSTS: '' }, { DATABASE_ALLOWED_PORTS: '' }, { DATABASE_ALLOWED_PORTS: '65536' }
   ]) await assert.rejects(validateDestination(config, { env, resolve }));
-  await assert.rejects(validateDestination({ ...config, port: 3307 }, { env: {}, resolve }));
+  await validateDestination({ ...config, port: 3307 }, { env: {}, resolve });
+  await assert.rejects(validateDestination({ ...config, port: 3307 }, { env: { DATABASE_ALLOWED_PORTS: '3306' }, resolve }));
   await assert.rejects(validateDestination({ ...config, host: '8.8.8.8' }, { env: {} }), /DNS hostname/);
 });
 

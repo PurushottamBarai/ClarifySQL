@@ -23,13 +23,14 @@ export async function validateDestination(config, { env = process.env, resolve =
   const allowedHosts = env.DATABASE_ALLOWED_HOSTS === undefined ? null :
     env.DATABASE_ALLOWED_HOSTS.split(',').map(value => normalizeHost(value.trim()));
   if (allowedHosts && !allowedHosts.includes(host)) throw blocked();
-  const allowedPorts = (env.DATABASE_ALLOWED_PORTS ?? '3306').split(',').map(value => {
-    if (!/^\d+$/.test(value.trim())) throw blocked();
-    const port = Number(value);
-    if (!Number.isInteger(port) || port < 1 || port > 65535) throw blocked();
-    return port;
-  });
-  if (!allowedPorts.includes(config.port)) throw blocked();
+  const allowedPorts = env.DATABASE_ALLOWED_PORTS === undefined ? null :
+    env.DATABASE_ALLOWED_PORTS.split(',').map(value => {
+      if (!/^\d+$/.test(value.trim())) throw blocked();
+      const port = Number(value);
+      if (!Number.isInteger(port) || port < 1 || port > 65535) throw blocked();
+      return port;
+    });
+  if (allowedPorts && !allowedPorts.includes(config.port)) throw blocked();
   const privateAllowed = env.DATABASE_ALLOW_PRIVATE_NETWORK === 'true' &&
     (env.NODE_ENV !== 'production' || Boolean(allowedHosts?.length));
   let addresses;

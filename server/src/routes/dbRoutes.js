@@ -60,7 +60,8 @@ export function createDatabaseRouter({ connect = createConnection, isConfigValid
       session.liveSchema = liveSchema;
       session.importedSchema = importedSchema || liveSchema;
       res.json({ success: true, connected: true, configured: true, database, host, user, schema: session.importedSchema, compatibility });
-    } catch {
+    } catch (error) {
+      console.error('Database connection failed:', error.message);
       clearDatabaseState(session);
       res.status(400).json({ success: false, connected: false, error: 'Unable to configure the database. Check the credentials, destination policy, and server settings.' });
     }

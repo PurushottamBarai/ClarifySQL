@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 import { isIP } from 'node:net';
 
 const CONFIG_KEYS = new Set(['host', 'port', 'user', 'password', 'database', 'connectionString', 'ssl']);
@@ -121,14 +121,10 @@ export function validateDatabaseConfig(input) {
 
 function encryptionKey(env) {
   const value = env.DATABASE_CONFIG_KEY;
-  if (typeof value !== 'string' || !/^[A-Za-z0-9+/]{43}=$/.test(value)) {
+  if (typeof value !== 'string' || value.length < 32) {
     throw new DatabaseConfigError('Database credential encryption is not configured.');
   }
-  const key = Buffer.from(value, 'base64');
-  if (key.length !== 32 || key.toString('base64') !== value) {
-    throw new DatabaseConfigError('Database credential encryption is not configured.');
-  }
-  return key;
+  return createHash('sha256').update('clarifysql.database.config.v1\0').update(value, 'utf8').digest();
 }
 
 export function assertDatabaseEncryptionConfigured(env = process.env) {

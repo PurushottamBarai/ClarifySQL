@@ -20,6 +20,8 @@ services:
         generateValue: true
       - key: SESSION_SECRET
         generateValue: true
+      - key: DATABASE_CONFIG_KEY
+        generateValue: true
       - key: GROQ_API_KEY
         sync: false
       - key: RESEND_API_KEY

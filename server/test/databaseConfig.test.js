@@ -32,9 +32,14 @@ test('invalid envelopes, wrong keys, and unsafe keys fail without credential lea
   assert.throws(() => decryptDatabaseConfig(encrypted, {
     env: { DATABASE_CONFIG_KEY: randomBytes(32).toString('base64') }, now: () => 1000
   }), /invalid or expired/);
-  for (const key of [undefined, 'secret', randomBytes(31).toString('base64'), randomBytes(33).toString('base64')]) {
+  for (const key of [undefined, '', 'short-secret']) {
     assert.throws(() => encryptDatabaseConfig(config, { env: { DATABASE_CONFIG_KEY: key } }), /encryption is not configured/);
   }
+  const secret = 'x'.repeat(32);
+  assert.deepEqual(
+    decryptDatabaseConfig(encryptDatabaseConfig(config, { env: { DATABASE_CONFIG_KEY: secret } }), { env: { DATABASE_CONFIG_KEY: secret } }),
+    config
+  );
   for (const ttl of ['0', '-1', 'NaN', '1.5', '2147483648']) {
     assert.throws(() => encryptDatabaseConfig(config, { env: { ...env, DATABASE_CONFIG_TTL_MS: ttl } }));
   }
