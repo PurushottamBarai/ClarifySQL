@@ -1,9 +1,18 @@
 import { useAuth } from '../context/AuthContext';
 import BrandLogo from './BrandLogo';
 
-export default function Navbar({ currentRoute, onNavigate }) {
+const AUTH_ROUTES = ['/login', '/signup', '/forgot-password', '/reset-password'];
+
+export default function Navbar({
+  currentRoute,
+  onNavigate,
+  dbStatus,
+  onOpenDbModal,
+  onReset,
+}) {
   const { user } = useAuth();
-  const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password'].includes(currentRoute);
+  const isApp = currentRoute === '/app';
+  const isAuthPage = AUTH_ROUTES.includes(currentRoute);
 
   const toggleTheme = () => {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -19,14 +28,34 @@ export default function Navbar({ currentRoute, onNavigate }) {
   return (
     <nav className="site-navbar">
       <div className="nav-container">
-        {/* Brand */}
         <div className="nav-brand" onClick={() => onNavigate('/')} title="ClarifySQL">
           <BrandLogo className="nav-brand-logo" />
         </div>
 
-        {/* Right Nav Actions */}
         <div className="nav-actions">
-          {/* Theme Toggle Button */}
+          {isApp && (
+            <>
+              <button
+                type="button"
+                className={`status-badge ${dbStatus?.connected ? 'connected' : 'disconnected'}`}
+                onClick={onOpenDbModal}
+                title="Click to configure MySQL connection"
+              >
+                <span className="dot-indicator"></span>
+                {dbStatus?.connected ? `Connected: ${dbStatus.database}` : 'Connect Database'}
+              </button>
+
+              <button
+                type="button"
+                className="nav-link-btn"
+                onClick={onReset}
+                title="Reset session and start over"
+              >
+                Reset
+              </button>
+            </>
+          )}
+
           <button
             type="button"
             className="theme-toggle-btn"
@@ -39,27 +68,27 @@ export default function Navbar({ currentRoute, onNavigate }) {
             </svg>
           </button>
 
-          {user ? (
-            <>
-              <button
-                type="button"
-                className="nav-link-btn"
-                onClick={() => onNavigate('/app')}
-              >
-                Workspace
-              </button>
-              <button
-                type="button"
-                className="nav-btn-primary"
-                onClick={() => onNavigate('/app')}
-              >
-                Open Console
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14" />
-                  <path d="M12 5l7 7-7 7" />
-                </svg>
-              </button>
-            </>
+          {isApp ? (
+            <button
+              type="button"
+              className="nav-link-btn"
+              onClick={() => onNavigate('/')}
+              title="Return to Home"
+            >
+              Home
+            </button>
+          ) : user ? (
+            <button
+              type="button"
+              className="nav-btn-primary"
+              onClick={() => onNavigate('/app')}
+            >
+              Workspace
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14" />
+                <path d="M12 5l7 7-7 7" />
+              </svg>
+            </button>
           ) : isAuthPage ? (
             <button
               type="button"
@@ -95,4 +124,3 @@ export default function Navbar({ currentRoute, onNavigate }) {
     </nav>
   );
 }
-

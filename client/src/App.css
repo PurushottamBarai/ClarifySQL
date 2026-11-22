@@ -16,33 +16,9 @@
   background: var(--bg-app);
 }
 
-/* Header */
-.header {
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-light);
-  padding: 0 1.5rem;
-  height: 58px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-  z-index: 50;
-  box-sizing: border-box;
-}
-
-.header-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-}
-
-
-.header-status {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-}
-
+/* ==========================================================================
+   Top Navbar
+   ========================================================================== */
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -730,6 +706,7 @@
   height: 58px;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   z-index: 50;
 }
 

@@ -67,8 +67,11 @@ function getClientRedirectBase(req) {
   }
   const forwardedProto = (req.get('x-forwarded-proto') || '').split(',')[0].trim();
   const protocol = forwardedProto === 'https' || req.protocol === 'https' ? 'https' : 'http';
-  const host = req.get('host') || 'localhost:5173';
-  return `${protocol}://${host}`;
+  const host = req.get('host');
+  if (host) {
+    return `${protocol}://${host}`;
+  }
+  return '';
 }
 
 export async function githubRedirect(req, res) {

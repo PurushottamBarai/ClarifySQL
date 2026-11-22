@@ -1,4 +1,3 @@
-/* eslint-disable no-empty */
 import { createContext, useContext, useEffect, useState } from 'react';
 import { api } from '../api/client';
 
@@ -49,7 +48,6 @@ export function AuthProvider({ children }) {
   );
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   return useContext(AuthContext);
 }

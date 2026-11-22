@@ -7,7 +7,7 @@ export default function SchemaPanel({
   dbStatus,
   onRefresh,
   user,
-  onOpenAuthModal,
+  onRequireLogin,
   onLogout,
 }) {
   const [openDbs, setOpenDbs] = useState({ default: true });
@@ -544,7 +544,7 @@ export default function SchemaPanel({
             transition: "background 0.12s ease",
             background: menuOpen ? "#f4f4f5" : "transparent",
           }}
-          onClick={user ? () => setMenuOpen(!menuOpen) : onOpenAuthModal}
+          onClick={user ? () => setMenuOpen(!menuOpen) : onRequireLogin}
           onMouseEnter={(e) => {
             if (!menuOpen) e.currentTarget.style.background = "#f4f4f5";
           }}
@@ -753,8 +753,8 @@ export default function SchemaPanel({
                 setMenuOpen(false);
                 if (user && onLogout) {
                   onLogout();
-                } else if (onOpenAuthModal) {
-                  onOpenAuthModal();
+                } else if (onRequireLogin) {
+                  onRequireLogin();
                 }
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "#dc2626")}

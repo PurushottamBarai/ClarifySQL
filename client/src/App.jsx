@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import Header from "./components/Header";
+import Navbar from "./components/Navbar";
 import SchemaPanel from "./components/SchemaPanel";
 import DatabaseModal from "./components/DatabaseModal";
-import AuthModal from "./components/AuthModal";
 import QueryConsole from "./components/QueryConsole";
 import SQLPreviewCard from "./components/SQLPreviewCard";
 import ResultsGrid from "./components/ResultsGrid";
@@ -49,7 +48,6 @@ export default function App() {
   const [schema, setSchema] = useState(null);
   const [dbStatus, setDbStatus] = useState(null);
   const [isDbModalOpen, setIsDbModalOpen] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [queryResult, setQueryResult] = useState(null);
   const [clarification, setClarification] = useState(null);
   const [lastQuestion, setLastQuestion] = useState("");
@@ -307,11 +305,12 @@ export default function App() {
   // Route 8: Main ClarifySQL App Console (/app)
   return (
     <div className="app-layout">
-      <Header
+      <Navbar
+        currentRoute="/app"
+        onNavigate={handleNavigate}
         dbStatus={dbStatus}
         onOpenDbModal={() => setIsDbModalOpen(true)}
         onReset={handleReset}
-        onNavigate={handleNavigate}
       />
 
       <div
@@ -326,7 +325,7 @@ export default function App() {
             dbStatus={dbStatus}
             onRefresh={handleRefreshSchema}
             user={user}
-            onOpenAuthModal={() => handleNavigate('/login')}
+            onRequireLogin={() => handleNavigate('/login')}
             onLogout={logout}
           />
           {/* Draggable Resizer Handle */}
@@ -368,11 +367,6 @@ export default function App() {
         onDisconnect={handleDisconnectDb}
         dbStatus={dbStatus}
         loading={loadingDb}
-      />
-
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
       />
     </div>
   );
