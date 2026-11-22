@@ -35,7 +35,7 @@ function createQueryRouter({ analyze = analyzeQuestionWithGroq, execute = execut
       const maxTurns = positiveBound(process.env.CLARIFICATION_MAX_TURNS, 8, 50);
       const boundedText = value => typeof value === 'string' && value.trim() && Buffer.byteLength(value, 'utf8') <= maxLength;
       if (!boundedText(question)) return res.status(400).json({ error: `Question must contain at most ${maxLength} bytes.` });
-      if (clarificationAnswer !== undefined && !boundedText(clarificationAnswer)) {
+      if (clarificationAnswer != null && !boundedText(clarificationAnswer)) {
         return res.status(400).json({ error: `Clarification answer must contain at most ${maxLength} bytes.` });
       }
       const schema = req.session.importedSchema;
