@@ -317,7 +317,7 @@ export default function App() {
         className="main-content"
         style={{ gridTemplateColumns: `${sidebarWidth}px 1fr` }}
       >
-        <div style={{ position: "relative", height: "100%", overflow: "visible" }}>
+        <div className="sidebar-column">
           <SchemaPanel
             schema={schema}
             onUpload={handleUploadSchema}
