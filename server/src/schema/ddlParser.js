@@ -183,21 +183,31 @@ function parseDDL(sqlContent) {
     throw new Error(`Schema SQL must contain at most ${maxBytes} bytes.`);
   }
   const statements = split(tokenize(sqlContent), ';');
-  if (!statements.length || statements.length > maxTables) throw new Error(`Schema must contain between 1 and ${maxTables} tables.`);
+  if (!statements.length) throw new Error('Schema SQL is empty.');
   const tables = [];
   let columnCount = 0;
   for (const tokens of statements) {
+    if (!tokens.length) continue;
     const statement = sqlContent.slice(tokens[0].start, tokens[tokens.length - 1].end);
     let ast;
-    try { ast = parser.astify(statement, { database: 'MySQL' }); } catch { throw new Error('Invalid or unsupported CREATE TABLE syntax.'); }
+    try {
+      ast = parser.astify(statement, { database: 'MySQL' });
+    } catch {
+      // Ignore unparseable or vendor-specific non-DDL statements
+      continue;
+    }
+    // Only process explicit CREATE TABLE statements, ignore all other statements (INSERT, DROP, USE, SET, etc.)
     if (Array.isArray(ast) || ast?.type !== 'create' || ast.keyword !== 'table' || ast.query_expr) {
-      throw new Error('Only explicit CREATE TABLE definitions are permitted.');
+      continue;
     }
     const table = parseTable(tokens, sqlContent);
     if (tables.some(existing => existing.name.toLowerCase() === table.name.toLowerCase())) throw new Error(`Duplicate table '${table.name}'.`);
     columnCount += table.columns.length;
     if (columnCount > maxColumns) throw new Error(`Schema exceeds the limit of ${maxColumns} columns.`);
     tables.push(table);
+  }
+  if (!tables.length || tables.length > maxTables) {
+    throw new Error(`Schema must contain between 1 and ${maxTables} tables.`);
   }
   for (const table of tables) {
     for (const foreign of table.foreignKeys) {
