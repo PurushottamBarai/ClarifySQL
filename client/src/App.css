@@ -720,6 +720,11 @@
   justify-content: space-between;
 }
 
+.nav-container-fluid {
+  max-width: none;
+  padding: 0 1.25rem;
+}
+
 .nav-brand {
   cursor: pointer;
   user-select: none;

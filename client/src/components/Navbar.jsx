@@ -27,7 +27,7 @@ export default function Navbar({
 
   return (
     <nav className="site-navbar">
-      <div className="nav-container">
+      <div className={`nav-container${isApp ? ' nav-container-fluid' : ''}`}>
         <div className="nav-brand" onClick={() => onNavigate('/')} title="ClarifySQL">
           <BrandLogo className="nav-brand-logo" />
         </div>
@@ -68,16 +68,7 @@ export default function Navbar({
             </svg>
           </button>
 
-          {isApp ? (
-            <button
-              type="button"
-              className="nav-link-btn"
-              onClick={() => onNavigate('/')}
-              title="Return to Home"
-            >
-              Home
-            </button>
-          ) : user ? (
+          {!isApp && (user ? (
             <button
               type="button"
               className="nav-btn-primary"
@@ -118,7 +109,7 @@ export default function Navbar({
                 Sign up
               </button>
             </>
-          )}
+          ))}
         </div>
       </div>
     </nav>
